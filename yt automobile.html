@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YT Automobile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        .table-header { background-color: #f3f4f6; }
+        .error { color: red; display: none; }
+        .inner-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .inner-table th, .inner-table td {
+            border: 1px solid #ddd;
+            padding: 6px;
+            text-align: left;
+        }
+        .inner-table th {
+            background-color: #f9fafb;
+        }
+        .logo {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 1rem;
+            height: 2.5rem;
+        }
+        .logo svg {
+            width: 100%;
+            max-width: 150px;
+            height: 2.5rem;
+        }
+        @media (max-width: 640px) {
+            .logo svg {
+                max-width: 120px;
+                height: 2.5rem;
+            }
+        }
+        .row-error { border: 1px solid red; }
+        #loginPage {
+            background-image: url('https://images.pexels.com/photos/1119796/pexels-photo-1119796.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0.95;
+        }
+        .receipt-bill {
+            border: 2px dashed #4b5563;
+            background-color: #ffffff;
+            font-family: 'Courier New', Courier, monospace;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div id="loginPage" class="container mx-auto p-6 rounded-lg shadow-md max-w-md mt-20 bg-black bg-opacity-50">
+        <div class="logo">
+            <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#1e40af;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#ef4444;stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+                <circle cx="50" cy="50" r="45" fill="none" stroke="url(#gradient)" stroke-width="8" stroke-dasharray="10,5" />
+                <circle cx="50" cy="50" r="35" fill="#ffffff" stroke="#10b981" stroke-width="2" />
+                <text x="50" y="60" font-family="Arial, sans-serif" font-size="30" font-weight="bold" fill="#1e40af" text-anchor="middle" dominant-baseline="middle">YT</text>
+                <circle cx="50" cy="20" r="5" fill="#10b981" />
+            </svg>
+        </div>
+        <h2 class="text-xl font-semibold mb-4 text-center text-white">Login to YT Automobile</h2>
+        
+        <div id="userStatusBanner" class="mb-4 text-center text-sm font-medium text-blue-300 hidden"></div>
+
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-white">Username</label>
+            <input type="text" id="username" class="mt-1 p-2 w-full border rounded text-gray-900" placeholder="Enter Username">
+            <span id="usernameError" class="error text-sm">Username is required</span>
+        </div>
+        <div class="mb-4">
+            <label id="passwordLabel" class="block text-sm font-medium text-white">Password</label>
+            <input type="password" id="password" class="mt-1 p-2 w-full border rounded text-gray-900" placeholder="Enter Password">
+            <span id="passwordError" class="error text-sm">Password is required</span>
+        </div>
+        <button id="loginButton" class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium px-4 py-2 rounded-lg shadow hover:from-blue-700 hover:to-indigo-700 w-full mb-3 transition">🚪 Login to Dashboard</button>
+        <a href="#" id="forgotPassword" class="text-blue-400 text-sm underline block text-center">Forgot Password?</a>
+        <span id="loginError" class="error text-sm block text-center mt-2">Invalid username or password</span>
+    </div>
+
+    <div id="forgotPasswordModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center font-sans" style="display: none; z-index: 50;">
+        <div class="bg-white p-6 rounded-xl shadow-lg max-w-md w-full mx-4">
+            <h3 class="text-lg font-bold mb-2 text-gray-800">Forgot Password</h3>
+            <p class="mb-4 text-sm text-gray-600">Enter your email to reset your password.</p>
+            <input type="email" id="resetEmail" class="p-2 w-full border rounded mb-4" placeholder="Enter Email Address">
+            <button id="resetButton" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 w-full mb-2 transition font-medium">Send Reset Link</button>
+            <button id="closeModal" class="text-gray-500 text-sm hover:underline block text-center w-full mt-1">Close</button>
+            <span id="resetSuccess" class="text-green-500 text-sm block text-center mt-2" style="display: none;">Reset link sent to your email!</span>
+        </div>
+    </div>
+
+    <div id="trackOrderModal" class="fixed inset-0 bg-gray-800 bg-opacity-60 flex justify-center items-center" style="display: none; z-index: 40;">
+        <div class="bg-white p-6 rounded-xl shadow-xl max-w-3xl w-full max-h-[85vh] overflow-y-auto mx-4">
+            <h3 class="text-xl font-bold mb-4 text-gray-800 border-b pb-2">🔍 Order & Invoice Portal</h3>
+            
+            <div id="trackingOptionSelection" class="space-y-4 py-2">
+                <p class="text-sm text-gray-600">Please choose an option to continue:</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <button id="chooseTrackLive" class="p-4 border rounded-xl hover:bg-blue-50 hover:border-blue-500 text-left transition group shadow-sm bg-white">
+                        <div class="font-bold text-blue-600 group-hover:text-blue-700 text-base flex items-center">📦 Track Live Orders</div>
+                        <div class="text-xs text-gray-500 mt-1">Check the delivery status of current pending orders.</div>
+                    </button>
+                    <button id="chooseViewOldBills" class="p-4 border rounded-xl hover:bg-emerald-50 hover:border-emerald-500 text-left transition group shadow-sm bg-white">
+                        <div class="font-bold text-emerald-600 group-hover:text-emerald-700 text-base flex items-center">📄 View Old Bills & Receipts</div>
+                        <div class="text-xs text-gray-500 mt-1">Review historical invoices and statement entries.</div>
+                    </button>
+                </div>
+            </div>
+
+            <div id="trackingSearchContainer" style="display: none;" class="mt-2">
+                <button id="btnBackToOptions" class="text-xs text-blue-500 hover:text-blue-700 font-medium mb-3 block flex items-center">← Back to Options</button>
+                <div class="mb-4">
+                    <label id="trackInputLabel" class="block text-sm font-medium text-gray-700 mb-1">Customer ID Number</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="trackOrderNumber" class="p-2 w-full border rounded-lg bg-gray-100 font-mono font-bold text-gray-700 cursor-not-allowed" readonly>
+                        <button id="trackButton" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition">Fetch</button>
+                    </div>
+                    <span id="trackOrderError" class="error text-sm mt-1">No billing history matching this identifier key could be discovered.</span>
+                </div>
+
+                <h4 id="trackResultsHeading" class="font-bold text-sm text-gray-800 mb-2 hidden">Results</h4>
+
+                <div id="orderDetails" class="grid grid-cols-1 md:grid-cols-12 gap-4 pt-2" style="display: none;">
+                    <div class="md:col-span-5 border-r pr-2">
+                        <h4 class="font-bold text-gray-700 text-xs uppercase tracking-wide mb-2">Available Bills Summary List</h4>
+                        <div id="trackingBillsSideMenu" class="flex flex-col space-y-1 max-h-[40vh] overflow-y-auto pr-1"></div>
+                    </div>
+                    <div class="md:col-span-7 bg-gray-50 p-3 rounded-lg border min-h-[45vh] flex flex-col justify-center">
+                        <div id="trackBillListingWrapper" class="w-full"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t pt-3 mt-5 flex justify-end">
+                <button id="closeTrackModal" class="bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium text-sm px-5 py-2 rounded-lg transition">Close Portal</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="mainContent" style="display: none;">
+        <div class="container mx-auto p-6">
+            <h1 class="text-2xl font-bold mb-6 text-gray-800">YT Automobile Dashboard</h1>
+            <div class="flex space-x-4 mb-6">
+                <!-- Portal button hidden on Admin console setup dynamically via Javascript -->
+                <button id="trackOrderButton" class="bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium px-4 py-2 rounded-lg shadow hover:from-blue-700 hover:to-blue-800 transition flex items-center gap-2">🔍 Track Records Portal</button>
+                <button id="backToLoginButton" class="bg-gradient-to-r from-gray-500 to-gray-600 text-white font-medium px-4 py-2 rounded-lg shadow hover:from-gray-600 hover:to-gray-700 transition flex items-center gap-2">↩ Sign Out</button>
+            </div>
+            
+            <div class="bg-white p-6 rounded-xl shadow-md mb-6 form-section">
+                <h2 class="text-lg font-bold mb-4 text-gray-800 border-b pb-2">👤 Customer Information</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Customer ID</label>
+                        <input type="text" id="customerId" class="mt-1 p-2 w-full border rounded-lg bg-gray-100 text-gray-600 font-mono font-bold cursor-not-allowed" readonly>
+                        <span id="customerIdError" class="error text-sm">Customer ID is required</span>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Company Name</label>
+                        <input type="text" id="companyName" class="mt-1 p-2 w-full border rounded-lg bg-gray-100 text-gray-600 font-bold cursor-not-allowed" readonly>
+                        <span id="companyNameError" class="error text-sm">Company Name is required</span>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Contact Person</label>
+                        <input type="text" id="contactPerson" class="mt-1 p-2 w-full border rounded-lg" placeholder="Enter Contact Numbers Only">
+                        <span id="contactPersonError" class="error text-sm">Contact Person number is required</span>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Order Date</label>
+                        <input type="datetime-local" id="orderDate" class="mt-1 p-2 w-full border rounded-lg">
+                        <span id="orderDateError" class="error text-sm">Order Date is required</span>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700">Shipping Address</label>
+                        <textarea id="shippingAddress" class="mt-1 p-2 w-full border rounded-lg" placeholder="Enter Full Shipping Address Data"></textarea>
+                        <span id="shippingAddressError" class="error text-sm">Shipping Address is required</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-md mb-6 form-section">
+                <h2 class="text-lg font-bold mb-4 text-gray-800 border-b pb-2">🛒 Product Order List</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="table-header text-gray-700 font-semibold text-sm border-b">
+                                <th class="p-3 text-left">Product Name (Part Number)</th>
+                                <th class="p-3 text-left w-32">Rate (INR)</th>
+                                <th class="p-3 text-left w-32">Discount (%)</th>
+                                <th class="p-3 text-left w-32">Quantity</th>
+                                <th class="p-3 text-left w-40">Subtotal (INR)</th>
+                                <th class="p-3 w-20"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="orderTableBody">
+                            <tr class="border-b">
+                                <td class="p-2">
+                                    <select class="product-name p-2 w-full border rounded-lg">
+                                        <option value="">Select a product</option>
+                                        <!-- TVS PARTS -->
+                                        <option value="TVS Apache Headlight Assembly (HL-TVS01)" data-rate="1450">TVS Apache Headlight Assembly (HL-TVS01)</option>
+                                        <option value="TVS Star City Handlebar Switch LH (SW-TVS02)" data-rate="596">TVS Star City Handlebar Switch LH (SW-TVS02)</option>
+                                        <option value="TVS Jupiter Side Mirror Set (MR-TVS03)" data-rate="320">TVS Jupiter Side Mirror Set (MR-TVS03)</option>
+                                        <option value="TVS XL100 Brake Lever Set (LV-TVS04)" data-rate="180">TVS XL100 Brake Lever Set (LV-TVS04)</option>
+                                        <option value="TVS Ntorq Handlebar Yoke Holder (YK-TVS05)" data-rate="740">TVS Ntorq Handlebar Yoke Holder (YK-TVS05)</option>
+                                        <!-- BAJAJ PARTS -->
+                                        <option value="Bajaj Pulsar 150 Headlight Unit (HL-BAJ01)" data-rate="1680">Bajaj Pulsar 150 Headlight Unit (HL-BAJ01)</option>
+                                        <option value="Bajaj Pulsar Handlebar Switch LH Control (SW-BAJ02)" data-rate="593">Bajaj Pulsar Handlebar Switch LH Control (SW-BAJ02)</option>
+                                        <option value="Bajaj Platina Clear Rear View Mirrors (MR-BAJ03)" data-rate="290">Bajaj Platina Clear Rear View Mirrors (MR-BAJ03)</option>
+                                        <option value="Bajaj Discover Clutch & Brake Lever (LV-BAJ04)" data-rate="240">Bajaj Discover Clutch & Brake Lever (LV-BAJ04)</option>
+                                        <option value="Bajaj Avenger Steering Stem Yoke (YK-BAJ05)" data-rate="1150">Bajaj Avenger Steering Stem Yoke (YK-BAJ05)</option>
+                                        <!-- YAMAHA PARTS -->
+                                        <option value="Yamaha FZ Halogen Headlight Cluster (HL-YAM01)" data-rate="1950">Yamaha FZ Halogen Headlight Cluster (HL-YAM01)</option>
+                                        <option value="Yamaha R15 Dipper/Horn Handlebar Switch (SW-YAM02)" data-rate="850">Yamaha R15 Dipper/Horn Handlebar Switch (SW-YAM02)</option>
+                                        <option value="Yamaha Fascino Styling Chrome Mirrors (MR-YAM03)" data-rate="450">Yamaha Fascino Styling Chrome Mirrors (MR-YAM03)</option>
+                                        <option value="Yamaha MT-15 Sport Lever Set (LV-YAM04)" data-rate="620">Yamaha MT-15 Sport Lever Set (LV-YAM04)</option>
+                                        <option value="Yamaha Ray-ZR Front Fork Upper Yoke (YK-YAM05)" data-rate="980">Yamaha Ray-ZR Front Fork Upper Yoke (YK-YAM05)</option>
+                                        <!-- HONDA PARTS -->
+                                        <option value="Honda Activa LED Headlight Assembly (HL-HON01)" data-rate="2100">Honda Activa LED Headlight Assembly (HL-HON01)</option>
+                                        <option value="Honda Shine Handlebar Switch Rh/Lh Combo (SW-HON02)" data-rate="720">Honda Shine Handlebar Switch Rh/Lh Combo (SW-HON02)</option>
+                                        <option value="Honda Dio Matte Black Side Mirror Pair (MR-HON03)" data-rate="340">Honda Dio Matte Black Side Mirror Pair (MR-HON03)</option>
+                                        <option value="Honda Unicorn Front Disc Brake Lever (LV-HON04)" data-rate="210">Honda Unicorn Front Disc Brake Lever (LV-HON04)</option>
+                                        <option value="Honda Hornet Handlebar Weight Yoke (YK-HON05)" data-rate="490">Honda Hornet Handlebar Weight Yoke (YK-HON05)</option>
+                                        <!-- HERO HONDA PARTS -->
+                                        <option value="Hero Splendor Retro Headlight Unit (HL-HH01)" data-rate="650">Hero Splendor Retro Headlight Unit (HL-HH01)</option>
+                                        <option value="Hero Honda Passion Handlebar Dipper Switch (SW-HH02)" data-rate="380">Hero Honda Passion Handlebar Dipper Switch (SW-HH02)</option>
+                                        <option value="Hero Glamour Rear View Side Mirror (MR-HH03)" data-rate="260">Hero Glamour Rear View Side Mirror (MR-HH03)</option>
+                                        <option value="Hero CD100 Control Lever Pair (LV-HH04)" data-rate="150">Hero CD100 Control Lever Pair (LV-HH04)</option>
+                                        <option value="Hero Honda Super Splendor Handle Yoke (YK-HH05)" data-rate="550">Hero Honda Super Splendor Handle Yoke (YK-HH05)</option>
+                                        <!-- SUZUKI PARTS -->
+                                        <option value="Suzuki Access 125 Headlamp Assembly (HL-SUZ01)" data-rate="1380">Suzuki Access 125 Headlamp Assembly (HL-SUZ01)</option>
+                                        <option value="Suzuki Gixxer Dual Toggle Dimmer Switch (SW-SUZ02)" data-rate="690">Suzuki Gixxer Dual Toggle Dimmer Switch (SW-SUZ02)</option>
+                                        <option value="Suzuki Burgman Wide Angle Side Mirrors (MR-SUZ03)" data-rate="520">Suzuki Burgman Wide Angle Side Mirrors (MR-SUZ03)</option>
+                                        <option value="Suzuki Hayate Pivot Break Lever (LV-SUZ04)" data-rate="190">Suzuki Hayate Pivot Break Lever (LV-SUZ04)</option>
+                                        <option value="Suzuki Intruder Core Steering Yoke Bracket (YK-SUZ05)" data-rate="1450">Suzuki Intruder Core Steering Yoke Bracket (YK-SUZ05)</option>
+                                    </select>
+                                </td>
+                                <td class="p-2 text-gray-700 font-medium px-4"><span class="rate"></span></td>
+                                <td class="p-2"><input type="number" class="discount p-1.5 w-full border rounded-lg" min="28" max="80" value="28"></td>
+                                <td class="p-2"><input type="number" class="quantity p-1.5 w-full border rounded-lg" min="1"></td>
+                                <td class="p-2 text-gray-900 font-bold px-4"><span class="subtotal"></span></td>
+                                <td class="p-2 text-center"><button class="remove-row text-red-500 hover:text-red-700 transition font-medium">Remove</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <button id="addRow" class="mt-4 bg-blue-600 text-white font-medium text-sm px-4 py-2 rounded-lg hover:bg-blue-700 shadow transition flex items-center gap-1">➕ Add Item Entry</button>
+                <span id="orderTableError" class="error text-sm mt-2">At least one valid item (product, quantity &gt; 0, discount between 28% and 80%) is required</span>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-md mb-6 form-section">
+                <h2 class="text-lg font-bold mb-4 text-gray-800 border-b pb-2">📝 Finalization</h2>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Special Notes / Operational Instructions</label>
+                    <textarea id="notes" class="p-2 w-full border rounded-lg" placeholder="Optional directions information logs..."></textarea>
+                </div>
+                <button id="submitOrder" class="bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold px-6 py-2.5 rounded-lg shadow hover:from-green-700 hover:to-emerald-700 transition">🚀 Submit Invoice Order</button>
+            </div>
+
+            <div id="adminPanelWrapper" class="bg-white p-6 rounded-xl shadow-md mb-6" style="display: none;">
+                <h2 class="text-xl font-bold mb-4 text-gray-800 border-b pb-2">👑 Admin Monitoring Console</h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="border-r pr-4">
+                        <h3 class="font-bold text-xs tracking-wider text-gray-500 uppercase mb-3">Client Nodes</h3>
+                        <div id="adminUserMenuList" class="flex flex-col space-y-1"></div>
+                    </div>
+                    <div class="md:col-span-3">
+                        <div class="border-b pb-2 mb-4 flex items-center justify-between">
+                            <h3 class="font-bold text-gray-700 text-base" id="adminActiveWorkspaceTitle">Select a user profile from left navigation list</h3>
+                        </div>
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                            <div class="lg:col-span-5 border-r pr-2">
+                                <h4 class="font-bold text-gray-600 text-xs uppercase mb-2">Invoices Menu List</h4>
+                                <div id="adminInvoiceNodesSelector" class="flex flex-col space-y-1 max-h-[50vh] overflow-y-auto"></div>
+                            </div>
+                            <div class="lg:col-span-7 bg-gray-50 p-4 rounded-xl border min-h-[50vh] flex flex-col justify-center">
+                                <div id="adminWorkspaceBillsArea" class="w-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="successPage" class="bg-white p-8 rounded-xl shadow-md text-center" style="display: none;">
+                <h2 class="text-2xl font-bold mb-2 text-green-600">Order Submitted Successfully!</h2>
+                <p class="text-gray-600 mb-6 font-medium">Your transaction metrics have been archived. System ID: <span id="successOrderNumber" class="font-bold text-gray-900 font-mono"></span></p>
+                <button id="backToForm" class="bg-blue-600 text-white font-medium px-6 py-2.5 rounded-lg hover:bg-blue-700 shadow transition max-w-sm mx-auto block">← Return to Order Screen</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- FIREBASE APP CONFIGURATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSy...", 
+            databaseURL: "https://your-project-id-default-rtdb.firebaseio.com",
+            projectId: "your-project-id",
+            // ... rest of your details
+        };
+        
+        let db = null;
+        let submittedOrders = [];
+        let registeredUsers = {}; 
+        let userProfiles = {}; 
+        const correctAdminUsername = "syedfaiz";
+        const correctAdminPassword = "syedfaiz@2811";
+        let currentLoggedInUser = "";
+        let isAdmin = false;
+        let selectedTrackingFilter = "all"; 
+
+        const isFirebaseConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY" && firebaseConfig.apiKey !== "AIzaSy...";
+
+        if (isFirebaseConfigured) {
+            try {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.database();
+
+                db.ref('registeredUsers').on('value', (snapshot) => {
+                    registeredUsers = snapshot.val() || {};
+                });
+
+                db.ref('userProfiles').on('value', (snapshot) => {
+                    userProfiles = snapshot.val() || {};
+                });
+
+                db.ref('submittedOrders').on('value', (snapshot) => {
+                    const data = snapshot.val() || {};
+                    submittedOrders = Object.keys(data).map(key => data[key]);
+                    if (currentLoggedInUser) {
+                        syncAdminWorkspaceArea();
+                        refreshTrackingLayoutWindow();
+                    }
+                });
+            } catch (e) {
+                console.error("Firebase startup fault: ", e);
+            }
+        } else {
+            console.log("Using LocalStorage fallback database mode.");
+            try {
+                submittedOrders = JSON.parse(localStorage.getItem('submittedOrders')) || [];
+                registeredUsers = JSON.parse(localStorage.getItem('registeredUsers')) || {};
+                userProfiles = JSON.parse(localStorage.getItem('userProfiles')) || {};
+            } catch (e) {
+                console.error('Error loading fallback models:', e);
+            }
+        }
+
+        function calculateSubtotal(row) {
+            const productSelect = row.querySelector('.product-name');
+            const discountInput = row.querySelector('.discount');
+            const quantityInput = row.querySelector('.quantity');
+            const subtotalSpan = row.querySelector('.subtotal');
+
+            if (!productSelect || !discountInput || !quantityInput || !subtotalSpan) return;
+
+            const rate = parseFloat(productSelect.options[productSelect.selectedIndex]?.dataset.rate) || 0;
+            let discount = parseFloat(discountInput.value);
+            
+            if (isNaN(discount) || discount < 28) discount = 28;
+            if (discount > 80) discount = 80;
+            
+            const quantity = parseInt(quantityInput.value) || 0;
+            const discountedRate = rate * (1 - discount / 100);
+            const subtotal = discountedRate * quantity;
+            subtotalSpan.textContent = subtotal.toFixed(2);
+        }
+
+        function getRandomDiscount() {
+            return Math.floor(Math.random() * (80 - 28 + 1)) + 28;
+        }
+
+        function updateDiscounts() {
+            const rows = document.querySelectorAll('#orderTableBody tr');
+            rows.forEach(row => {
+                const discountInput = row.querySelector('.discount');
+                const productSelect = row.querySelector('.product-name');
+                const rateSpan = row.querySelector('.rate');
+
+                if (productSelect && rateSpan) {
+                    const rate = productSelect.options[productSelect.selectedIndex]?.dataset.rate || '';
+                    rateSpan.textContent = rate;
+                }
+
+                if (productSelect && discountInput) {
+                    if (productSelect.value) { 
+                        if (!discountInput.dataset.assigned) {
+                            discountInput.value = getRandomDiscount();
+                            discountInput.dataset.assigned = "true";
+                        }
+                    } else {
+                        discountInput.value = 28; 
+                        delete discountInput.dataset.assigned;
+                    }
+                    discountInput.disabled = isAdmin;
+                }
+                calculateSubtotal(row);
+            });
+        }
+
+        function generateSystemCustomerId() {
+            return `CUST-${Math.floor(100000 + Math.random() * 900000)}`;
+        }
+
+        function makeBillHtmlReceipt(order) {
+            let runningSum = 0;
+            const rowsHtml = order.items.map((item, index) => {
+                const subValue = (item.rate * (1 - item.discount / 100) * item.quantity);
+                runningSum += subValue;
+                return `
+                    <tr style="border-bottom: 1px dotted #ccc;">
+                        <td style="padding: 5px 0; text-align: left;">${String(index+1).padStart(2, '0')}. ${item.productName}</td>
+                        <td style="padding: 5px 0; text-align: center;">${item.quantity}</td>
+                        <td style="padding: 5px 0; text-align: right;">${subValue.toFixed(2)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            let stateLabel = order.completed ? "COMPLETED (CONFIRMED)" : "IN PROCESS / PACKAGING";
+            let stateColor = order.completed ? "text-green-600" : "text-amber-600";
+
+            return `
+                <div class="receipt-bill p-5 max-w-md mx-auto text-gray-800 text-xs shadow border rounded">
+                    <div class="text-center border-b pb-2 mb-3 border-black">
+                        <h3 class="text-base font-bold tracking-wide">YT AUTOMOBILE SALES SLIP</h3>
+                        <p>BANGALORE MAIN UNIT PATHWAY</p>
+                        <p class="text-[10px] text-gray-400">SYSTEM INVOICE LOG RECORD</p>
+                    </div>
+                    <div class="space-y-1 mb-3 text-left">
+                        <p><strong>INVOICE ID:</strong> ${order.orderNumber}</p>
+                        <p><strong>CLIENT ID :</strong> ${order.customerId}</p>
+                        <p><strong>COMPANY   :</strong> ${order.companyName.toUpperCase()}</p>
+                        <p><strong>CONTACT   :</strong> ${order.contactPerson}</p>
+                        <p><strong>DATE/TIME :</strong> ${new Date(order.orderDate).toLocaleString()}</p>
+                        <p><strong>STATUS    :</strong> <span class="font-bold ${stateColor}">${stateLabel}</span></p>
+                    </div>
+                    <div class="border-b border-black font-bold mb-1 pb-1 flex justify-between">
+                        <span>ITEM DESCRIPTION</span>
+                        <span class="w-12 text-center">QTY</span>
+                        <span class="w-20 text-right">TOTAL</span>
+                    </div>
+                    <table class="w-full mb-3">
+                        <tbody>${rowsHtml}</tbody>
+                    </table>
+                    <div class="border-t border-black pt-2 flex justify-between text-sm font-bold">
+                        <span>NET TOTAL DUE :</span>
+                        <span>₹ ${runningSum.toFixed(2)}</span>
+                    </div>
+                    <div class="mt-3 text-[10px] text-gray-500 text-left">
+                        <p><strong>ADDRESS:</strong> ${order.shippingAddress}</p>
+                        ${order.notes ? `<p><strong>REMARKS:</strong> ${order.notes}</p>` : ''}
+                    </div>
+                    <div class="text-center mt-4 border-t pt-2 border-gray-300 text-[9px] text-gray-400">
+                        * THANK YOU FOR PATRONIZING YT AUTOMOBILE *
+                    </div>
+                </div>
+            `;
+        }
+
+        function attachRowListeners(row) {
+            const removeButton = row.querySelector('.remove-row');
+            if (removeButton) {
+                removeButton.addEventListener('click', () => {
+                    row.remove();
+                });
+            }
+
+            const productSelect = row.querySelector('.product-name');
+            const rateSpan = row.querySelector('.rate');
+            const discountInput = row.querySelector('.discount');
+            const quantityInput = row.querySelector('.quantity');
+
+            if (productSelect && rateSpan) {
+                productSelect.addEventListener('change', () => {
+                    const rate = productSelect.options[productSelect.selectedIndex]?.dataset.rate || '';
+                    rateSpan.textContent = rate;
+                    delete discountInput.dataset.assigned; 
+                    
+                    if (productSelect.value && !discountInput.dataset.assigned) {
+                        discountInput.value = getRandomDiscount();
+                        discountInput.dataset.assigned = "true";
+                    }
+                    calculateSubtotal(row);
+                });
+            }
+
+            if (discountInput) {
+                discountInput.addEventListener('input', () => {
+                    let val = parseFloat(discountInput.value);
+                    if(!isNaN(val)) {
+                        if(val < 28) discountInput.value = 28;
+                        if(val > 80) discountInput.value = 80;
+                    }
+                    calculateSubtotal(row);
+                });
+                discountInput.disabled = isAdmin;
+            }
+            if (quantityInput) {
+                quantityInput.addEventListener('input', () => calculateSubtotal(row));
+            }
+        }
+
+        function syncAdminWorkspaceArea() {
+            if (!isAdmin) return;
+            const menuContainer = document.getElementById('adminUserMenuList');
+            const workspace = document.getElementById('adminWorkspaceBillsArea');
+            const nodeMenu = document.getElementById('adminInvoiceNodesSelector');
+            if (!menuContainer) return;
+
+            menuContainer.innerHTML = '';
+            nodeMenu.innerHTML = '';
+            workspace.innerHTML = `<p class="text-gray-400 text-sm text-center italic">Select a company profile to open statements database index logs.</p>`;
+
+            const clientsList = [...new Set(submittedOrders.map(o => o.companyName.toLowerCase()))];
+
+            if (clientsList.length === 0) {
+                menuContainer.innerHTML = `<p class="text-xs text-gray-400 italic p-2">Empty ledger maps.</p>`;
+                return;
+            }
+
+            clientsList.forEach(userKey => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-2 rounded text-sm font-semibold transition hover:bg-blue-50 text-blue-600 capitalize mb-1 border-l-4 border-blue-500 bg-gray-50 shadow-sm";
+                btn.textContent = `👤 ${userKey}`;
+                
+                btn.addEventListener('click', () => {
+                    document.getElementById('adminActiveWorkspaceTitle').textContent = `Client Workspace: ${userKey.toUpperCase()}`;
+                    workspace.innerHTML = `<p class="text-gray-400 text-sm text-center italic">Select a specific bill timestamp node from the list menu above.</p>`;
+                    
+                    const clientRecords = submittedOrders
+                        .filter(o => o.companyName.toLowerCase() === userKey)
+                        .sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
+
+                    nodeMenu.innerHTML = '';
+                    if(clientRecords.length === 0) {
+                        nodeMenu.innerHTML = `<p class="text-xs text-gray-400 italic p-2">No entries logged.</p>`;
+                        return;
+                    }
+
+                    clientRecords.forEach(record => {
+                        const rowBtn = document.createElement('button');
+                        const readableDate = new Date(record.orderDate).toLocaleDateString();
+                        const flag = record.completed ? "✅" : "⏳";
+                        rowBtn.className = "w-full text-left p-2 border rounded-lg text-xs font-mono bg-white shadow-sm hover:bg-gray-100 transition flex items-center justify-between mb-1";
+                        rowBtn.innerHTML = `<span>${flag} ${readableDate} - ${record.orderNumber}</span> <span>➔</span>`;
+                        
+                        rowBtn.addEventListener('click', () => {
+                            const slipMarkup = makeBillHtmlReceipt(record);
+                            workspace.innerHTML = `
+                                <div class="p-2 relative bg-white border rounded-xl shadow-inner">
+                                    ${slipMarkup}
+                                    <div class="mt-4 max-w-md mx-auto text-center text-xs font-bold text-gray-500 border-t pt-2 uppercase">
+                                        [ Audit Logging Path Locked ]
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        nodeMenu.appendChild(rowBtn);
+                    });
+                });
+
+                menuContainer.appendChild(btn);
+            });
+        }
+
+        function refreshTrackingLayoutWindow() {
+            const modal = document.getElementById('trackOrderModal');
+            if (modal && modal.style.display === 'flex' && document.getElementById('trackingSearchContainer').style.display === 'block') {
+                document.getElementById('trackButton').click();
+            }
+        }
+
+        window.userConfirmReceiptComplete = function(orderNum) {
+            const confirmed = confirm("Are you sure you want to confirm that this shipment order has been completely received?");
+            if (!confirmed) return;
+
+            const targetIndex = submittedOrders.findIndex(o => o.orderNumber === orderNum);
+            if (targetIndex > -1) {
+                if (isFirebaseConfigured) {
+                    db.ref('submittedOrders/' + orderNum + '/completed').set(true).then(() => {
+                        alert(`Receipt ${orderNum} confirmed successfully!`);
+                    });
+                } else {
+                    submittedOrders[targetIndex].completed = true;
+                    localStorage.setItem('submittedOrders', JSON.stringify(submittedOrders));
+                    alert(`Receipt ${orderNum} confirmed successfully!`);
+                    document.getElementById('trackButton').click();
+                }
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('orderDate').value = new Date().toISOString().slice(0, 16);
+
+            const usernameInput = document.getElementById('username');
+            const passwordLabel = document.getElementById('passwordLabel');
+            const passwordInput = document.getElementById('password');
+            const userStatusBanner = document.getElementById('userStatusBanner');
+            const loginButton = document.getElementById('loginButton');
+            const contactPersonInput = document.getElementById('contactPerson');
+
+            contactPersonInput.addEventListener('input', (e) => {
+                const errorSpan = document.getElementById('contactPersonError');
+                if (/[^0-9]/.test(contactPersonInput.value)) {
+                    errorSpan.textContent = "⚠️ Contact Person must contain numbers only.";
+                    errorSpan.style.display = 'block';
+                    contactPersonInput.value = contactPersonInput.value.replace(/[^0-9]/g, '');
+                } else {
+                    errorSpan.style.display = 'none';
+                }
+            });
+
+            usernameInput.addEventListener('input', () => {
+                const username = usernameInput.value.trim();
+                const hasNumbers = /[0-9]/.test(username);
+
+                if (!username) {
+                    passwordLabel.textContent = "Password";
+                    passwordInput.placeholder = "Enter Password";
+                    userStatusBanner.style.display = "none";
+                    loginButton.textContent = "Login";
+                    return;
+                }
+
+                if (hasNumbers) {
+                    userStatusBanner.textContent = "⚠️ Numeric digits (0-9) are not permitted in usernames.";
+                    userStatusBanner.className = "mb-4 text-center text-sm font-medium text-red-400 block";
+                    return;
+                }
+
+                if (username === correctAdminUsername) {
+                    passwordLabel.textContent = "Admin Password";
+                    passwordInput.placeholder = "Enter Admin Password";
+                    userStatusBanner.textContent = "👑 Admin Account Detected";
+                    userStatusBanner.className = "mb-4 text-center text-sm font-medium text-yellow-300 block";
+                    loginButton.textContent = "Login as Admin";
+                } else if (registeredUsers[username]) {
+                    passwordLabel.textContent = "Password";
+                    passwordInput.placeholder = "Enter your password";
+                    userStatusBanner.textContent = "👋 Welcome back! Please enter your password.";
+                    userStatusBanner.className = "mb-4 text-center text-sm font-medium text-green-300 block";
+                    loginButton.textContent = "Login";
+                } else {
+                    passwordLabel.textContent = "Create New Password";
+                    passwordInput.placeholder = "Choose a new secure password";
+                    userStatusBanner.textContent = "✨ New Username Detected! Type a password below to register.";
+                    userStatusBanner.className = "mb-4 text-center text-sm font-medium text-blue-300 block";
+                    loginButton.textContent = "Register & Login";
+                }
+            });
+
+            loginButton.addEventListener('click', () => {
+                const username = usernameInput.value.trim();
+                const password = passwordInput.value.trim();
+                const usernameError = document.getElementById('usernameError');
+                const passwordError = document.getElementById('passwordError');
+                const loginError = document.getElementById('loginError');
+                
+                let isValid = true;
+
+                usernameError.style.display = 'none';
+                passwordError.style.display = 'none';
+                loginError.style.display = 'none';
+
+                if (!username) {
+                    usernameError.style.display = 'block';
+                    isValid = false;
+                }
+
+                if (!password) {
+                    passwordError.style.display = 'block';
+                    isValid = false;
+                }
+
+                const hasNumbers = /[0-9]/.test(username);
+                if (isValid && hasNumbers) {
+                    alert("Invalid Username layout. Numbers are forbidden.");
+                    isValid = false;
+                }
+
+                if (isValid) {
+                    if (username === correctAdminUsername) {
+                        if (password === correctAdminPassword) {
+                            isAdmin = true;
+                            currentLoggedInUser = username;
+                            executeSuccessfulLogin();
+                        } else {
+                            loginError.style.display = 'block';
+                        }
+                    } else if (registeredUsers[username]) {
+                        if (registeredUsers[username] === password) {
+                            isAdmin = false;
+                            currentLoggedInUser = username;
+                            executeSuccessfulLogin();
+                        } else {
+                            loginError.style.display = 'block';
+                        }
+                    } else {
+                        if (isFirebaseConfigured) {
+                            db.ref('registeredUsers/' + username).set(password)
+                            .then(() => {
+                                alert(`Account created successfully for user: ${username}!`);
+                                isAdmin = false;
+                                currentLoggedInUser = username;
+                                executeSuccessfulLogin();
+                            })
+                            .catch(err => alert("Database connection error: " + err.message));
+                        } else {
+                            registeredUsers[username] = password;
+                            localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+                            alert(`Account created locally for user: ${username}!`);
+                            isAdmin = false;
+                            currentLoggedInUser = username;
+                            executeSuccessfulLogin();
+                        }
+                    }
+                }
+            });
+
+            function executeSuccessfulLogin() {
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                document.getElementById('backToLoginButton').style.display = 'block';
+                document.getElementById('loginError').style.display = 'none';
+                userStatusBanner.style.display = 'none';
+                
+                if (isAdmin) {
+                    document.querySelectorAll('.form-section').forEach(el => el.style.display = 'none');
+                    document.getElementById('adminPanelWrapper').style.display = 'block';
+                    // FIXED: Remove track records portal button entirely if administrator is active
+                    document.getElementById('trackOrderButton').style.display = 'none';
+                    syncAdminWorkspaceArea();
+                } else {
+                    document.querySelectorAll('.form-section').forEach(el => el.style.display = 'block');
+                    document.getElementById('adminPanelWrapper').style.display = 'none';
+                    // Re-show tracking records button for normal users
+                    document.getElementById('trackOrderButton').style.display = 'block';
+                    
+                    if (!userProfiles[currentLoggedInUser]) {
+                        userProfiles[currentLoggedInUser] = {};
+                    }
+                    if (!userProfiles[currentLoggedInUser].savedId) {
+                        userProfiles[currentLoggedInUser].savedId = generateSystemCustomerId();
+                        if (!isFirebaseConfigured) {
+                            localStorage.setItem('userProfiles', JSON.stringify(userProfiles));
+                        }
+                    }
+
+                    document.getElementById('customerId').value = userProfiles[currentLoggedInUser].savedId;
+                    document.getElementById('companyName').value = currentLoggedInUser;
+
+                    const profile = userProfiles[currentLoggedInUser];
+                    document.getElementById('contactPerson').value = profile.contactPerson || '';
+                    document.getElementById('shippingAddress').value = profile.shippingAddress || '';
+                }
+                updateDiscounts();
+            }
+
+            document.getElementById('backToLoginButton').addEventListener('click', () => {
+                document.getElementById('mainContent').style.display = 'none';
+                document.getElementById('loginPage').style.display = 'block';
+                usernameInput.value = '';
+                passwordInput.value = '';
+                passwordLabel.textContent = "Password";
+                passwordInput.placeholder = "Enter Password";
+                loginButton.textContent = "Login";
+                document.getElementById('usernameError').style.display = 'none';
+                document.getElementById('passwordError').style.display = 'none';
+                document.getElementById('loginError').style.display = 'none';
+                userStatusBanner.style.display = 'none';
+                isAdmin = false;
+                currentLoggedInUser = "";
+            });
+
+            document.getElementById('forgotPassword').addEventListener('click', (e) => {
+                e.preventDefault();
+                document.getElementById('forgotPasswordModal').style.display = 'flex';
+            });
+
+            document.getElementById('closeModal').addEventListener('click', () => {
+                document.getElementById('forgotPasswordModal').style.display = 'none';
+            });
+
+            document.getElementById('resetButton').addEventListener('click', () => {
+                const email = document.getElementById('resetEmail').value.trim();
+                if (email) {
+                    document.getElementById('resetSuccess').style.display = 'block';
+                    setTimeout(() => {
+                        document.getElementById('forgotPasswordModal').style.display = 'none';
+                        document.getElementById('resetSuccess').style.display = 'none';
+                        document.getElementById('resetEmail').value = '';
+                    }, 2000);
+                }
+            });
+
+            document.getElementById('trackOrderButton').addEventListener('click', () => {
+                document.getElementById('trackOrderModal').style.display = 'flex';
+                document.getElementById('trackingOptionSelection').style.display = 'block';
+                document.getElementById('trackingSearchContainer').style.display = 'none';
+                document.getElementById('trackOrderNumber').value = isAdmin ? '' : (userProfiles[currentLoggedInUser]?.savedId || '');
+                document.getElementById('orderDetails').style.display = 'none';
+                document.getElementById('trackOrderError').style.display = 'none';
+                document.getElementById('trackResultsHeading').style.display = 'none';
+            });
+
+            document.getElementById('closeTrackModal').addEventListener('click', () => {
+                document.getElementById('trackOrderModal').style.display = 'none';
+            });
+
+            document.getElementById('btnBackToOptions').addEventListener('click', () => {
+                document.getElementById('trackingOptionSelection').style.display = 'block';
+                document.getElementById('trackingSearchContainer').style.display = 'none';
+                document.getElementById('orderDetails').style.display = 'none';
+                document.getElementById('trackOrderError').style.display = 'none';
+                document.getElementById('trackResultsHeading').style.display = 'none';
+            });
+
+            document.getElementById('chooseTrackLive').addEventListener('click', () => {
+                selectedTrackingFilter = "live";
+                document.getElementById('trackInputLabel').textContent = "Customer ID Number (Tracking Live Shipments)";
+                document.getElementById('trackResultsHeading').textContent = "Live Processing Invoices";
+                document.getElementById('trackResultsHeading').style.display = 'block';
+                document.getElementById('trackingOptionSelection').style.display = 'none';
+                document.getElementById('trackingSearchContainer').style.display = 'block';
+                document.getElementById('trackButton').click();
+            });
+
+            document.getElementById('chooseViewOldBills').addEventListener('click', () => {
+                selectedTrackingFilter = "completed";
+                document.getElementById('trackInputLabel').textContent = "Customer ID Number (Reviewing Archive Bills)";
+                document.getElementById('trackResultsHeading').textContent = "Archived Historical Bills";
+                document.getElementById('trackResultsHeading').style.display = 'block';
+                document.getElementById('trackingOptionSelection').style.display = 'none';
+                document.getElementById('trackingSearchContainer').style.display = 'block';
+                document.getElementById('trackButton').click();
+            });
+
+            document.getElementById('trackButton').addEventListener('click', () => {
+                const customerQueryKey = document.getElementById('trackOrderNumber').value.trim().toUpperCase();
+                const trackOrderError = document.getElementById('trackOrderError');
+                const orderDetails = document.getElementById('orderDetails');
+                const sideMenu = document.getElementById('trackingBillsSideMenu');
+                const billViewer = document.getElementById('trackBillListingWrapper');
+
+                let filteredClientOrders = submittedOrders.filter(o => o.customerId.toUpperCase() === customerQueryKey);
+
+                if (selectedTrackingFilter === "live") {
+                    filteredClientOrders = filteredClientOrders.filter(o => !o.completed);
+                } else if (selectedTrackingFilter === "completed") {
+                    filteredClientOrders = filteredClientOrders.filter(o => o.completed);
+                }
+
+                filteredClientOrders.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
+
+                sideMenu.innerHTML = '';
+                billViewer.innerHTML = `<p class="text-gray-400 italic text-center text-xs">Select a record path entry from side list panel node to compile receipt billing layout views.</p>`;
+
+                if (filteredClientOrders.length > 0) {
+                    trackOrderError.style.display = 'none';
+                    orderDetails.style.display = 'grid';
+                    
+                    filteredClientOrders.forEach(order => {
+                        const rowBtn = document.createElement('button');
+                        const readableDate = new Date(order.orderDate).toLocaleDateString();
+                        rowBtn.className = "w-full text-left p-2 border rounded-lg text-xs font-mono bg-white shadow-sm hover:bg-blue-50 transition flex justify-between items-center mb-1 border-l-4 border-gray-400";
+                        rowBtn.innerHTML = `<span>📅 ${readableDate}<br><span class="text-[10px] text-gray-500">${order.orderNumber}</span></span> <span>➔</span>`;
+                        
+                        rowBtn.addEventListener('click', () => {
+                            document.querySelectorAll('#trackingBillsSideMenu button').forEach(b => b.classList.remove('border-blue-500', 'bg-blue-50'));
+                            rowBtn.classList.add('border-blue-500', 'bg-blue-50');
+
+                            const billReceiptHtml = makeBillHtmlReceipt(order);
+                            billViewer.innerHTML = `
+                                <div class="w-full">
+                                    ${billReceiptHtml}
+                                    <div class="mt-3 flex justify-end px-2">
+                                        ${!order.completed && !isAdmin ? 
+                                        `<button onclick="userConfirmReceiptComplete('${order.orderNumber}')" class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xs py-1.5 px-4 rounded-lg shadow hover:from-blue-700 hover:to-indigo-700 transition">Confirm Order Received</button>` : 
+                                        order.completed ? `<span class="text-xs text-green-700 font-bold bg-green-100 px-3 py-1 rounded-md border border-green-300">✓ Delivery Confirmed</span>` : 
+                                        `<span class="text-xs text-gray-500 italic">Awaiting Confirmation</span>`}
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        sideMenu.appendChild(rowBtn);
+                    });
+                } else {
+                    trackOrderError.style.display = 'block';
+                    orderDetails.style.display = 'none';
+                }
+            });
+
+            document.getElementById('addRow').addEventListener('click', () => {
+                const tbody = document.getElementById('orderTableBody');
+                const row = document.createElement('tr');
+                row.className = "border-b";
+                row.innerHTML = `
+                    <td class="p-2">
+                        <select class="product-name p-2 w-full border rounded-lg">
+                            <option value="">Select a product</option>
+                            <!-- TVS PARTS -->
+                            <option value="TVS Apache Headlight Assembly (HL-TVS01)" data-rate="1450">TVS Apache Headlight Assembly (HL-TVS01)</option>
+                            <option value="TVS Star City Handlebar Switch LH (SW-TVS02)" data-rate="596">TVS Star City Handlebar Switch LH (SW-TVS02)</option>
+                            <option value="TVS Jupiter Side Mirror Set (MR-TVS03)" data-rate="320">TVS Jupiter Side Mirror Set (MR-TVS03)</option>
+                            <option value="TVS XL100 Brake Lever Set (LV-TVS04)" data-rate="180">TVS XL100 Brake Lever Set (LV-TVS04)</option>
+                            <option value="TVS Ntorq Handlebar Yoke Holder (YK-TVS05)" data-rate="740">TVS Ntorq Handlebar Yoke Holder (YK-TVS05)</option>
+                            <!-- BAJAJ PARTS -->
+                            <option value="Bajaj Pulsar 150 Headlight Unit (HL-BAJ01)" data-rate="1680">Bajaj Pulsar 150 Headlight Unit (HL-BAJ01)</option>
+                            <option value="Bajaj Pulsar Handlebar Switch LH Control (SW-BAJ02)" data-rate="593">Bajaj Pulsar Handlebar Switch LH Control (SW-BAJ02)</option>
+                            <option value="Bajaj Platina Clear Rear View Mirrors (MR-BAJ03)" data-rate="290">Bajaj Platina Clear Rear View Mirrors (MR-BAJ03)</option>
+                            <option value="Bajaj Discover Clutch & Brake Lever (LV-BAJ04)" data-rate="240">Bajaj Discover Clutch & Brake Lever (LV-BAJ04)</option>
+                            <option value="Bajaj Avenger Steering Stem Yoke (YK-BAJ05)" data-rate="1150">Bajaj Avenger Steering Stem Yoke (YK-BAJ05)</option>
+                            <!-- YAMAHA PARTS -->
+                            <option value="Yamaha FZ Halogen Headlight Cluster (HL-YAM01)" data-rate="1950">Yamaha FZ Halogen Headlight Cluster (HL-YAM01)</option>
+                            <option value="Yamaha R15 Dipper/Horn Handlebar Switch (SW-YAM02)" data-rate="850">Yamaha R15 Dipper/Horn Handlebar Switch (SW-YAM02)</option>
+                            <option value="Yamaha Fascino Styling Chrome Mirrors (MR-YAM03)" data-rate="450">Yamaha Fascino Styling Chrome Mirrors (MR-YAM03)</option>
+                            <option value="Yamaha MT-15 Sport Lever Set (LV-YAM04)" data-rate="620">Yamaha MT-15 Sport Lever Set (LV-YAM04)</option>
+                            <option value="Yamaha Ray-ZR Front Fork Upper Yoke (YK-YAM05)" data-rate="980">Yamaha Ray-ZR Front Fork Upper Yoke (YK-YAM05)</option>
+                            <!-- HONDA PARTS -->
+                            <option value="Honda Activa LED Headlight Assembly (HL-HON01)" data-rate="2100">Honda Activa LED Headlight Assembly (HL-HON01)</option>
+                            <option value="Honda Shine Handlebar Switch Rh/Lh Combo (SW-HON02)" data-rate="720">Honda Shine Handlebar Switch Rh/Lh Combo (SW-HON02)</option>
+                            <option value="Honda Dio Matte Black Side Mirror Pair (MR-HON03)" data-rate="340">Honda Dio Matte Black Side Mirror Pair (MR-HON03)</option>
+                            <option value="Honda Unicorn Front Disc Brake Lever (LV-HON04)" data-rate="210">Honda Unicorn Front Disc Brake Lever (LV-HON04)</option>
+                            <option value="Honda Hornet Handlebar Weight Yoke (YK-HON05)" data-rate="490">Honda Hornet Handlebar Weight Yoke (YK-HON05)</option>
+                            <!-- HERO HONDA PARTS -->
+                            <option value="Hero Splendor Retro Headlight Unit (HL-HH01)" data-rate="650">Hero Splendor Retro Headlight Unit (HL-HH01)</option>
+                            <option value="Hero Honda Passion Handlebar Dipper Switch (SW-HH02)" data-rate="380">Hero Honda Passion Handlebar Dipper Switch (SW-HH02)</option>
+                            <option value="Hero Glamour Rear View Side Mirror (MR-HH03)" data-rate="260">Hero Glamour Rear View Side Mirror (MR-HH03)</option>
+                            <option value="Hero CD100 Control Lever Pair (LV-HH04)" data-rate="150">Hero CD100 Control Lever Pair (LV-HH04)</option>
+                            <option value="Hero Honda Super Splendor Handle Yoke (YK-HH05)" data-rate="550">Hero Honda Super Splendor Handle Yoke (YK-HH05)</option>
+                            <!-- SUZUKI PARTS -->
+                            <option value="Suzuki Access 125 Headlamp Assembly (HL-SUZ01)" data-rate="1380">Suzuki Access 125 Headlamp Assembly (HL-SUZ01)</option>
+                            <option value="Suzuki Gixxer Dual Toggle Dimmer Switch (SW-SUZ02)" data-rate="690">Suzuki Gixxer Dual Toggle Dimmer Switch (SW-SUZ02)</option>
+                            <option value="Suzuki Burgman Wide Angle Side Mirrors (MR-SUZ03)" data-rate="520">Suzuki Burgman Wide Angle Side Mirrors (MR-SUZ03)</option>
+                            <option value="Suzuki Hayate Pivot Break Lever (LV-SUZ04)" data-rate="190">Suzuki Hayate Pivot Break Lever (LV-SUZ04)</option>
+                            <option value="Suzuki Intruder Core Steering Yoke Bracket (YK-SUZ05)" data-rate="1450">Suzuki Intruder Core Steering Yoke Bracket (YK-SUZ05)</option>
+                        </select>
+                    </td>
+                    <td class="p-2 text-gray-700 font-medium px-4"><span class="rate"></span></td>
+                    <td class="p-2"><input type="number" class="discount p-1.5 w-full border rounded-lg" min="28" max="80" value="28"></td>
+                    <td class="p-2"><input type="number" class="quantity p-1.5 w-full border rounded-lg" min="1"></td>
+                    <td class="p-2 text-gray-900 font-bold px-4"><span class="subtotal"></span></td>
+                    <td class="p-2 text-center"><button class="remove-row text-red-500 hover:text-red-700 transition font-medium">Remove</button></td>
+                `;
+                tbody.appendChild(row);
+                attachRowListeners(row);
+                updateDiscounts();
+            });
+
+            document.querySelectorAll('#orderTableBody tr').forEach(row => attachRowListeners(row));
+            
+            document.getElementById('submitOrder').addEventListener('click', () => {
+                let isValid = true;
+                const fields = [
+                    { id: 'customerId', errorId: 'customerIdError', message: 'Customer ID is required' },
+                    { id: 'companyName', errorId: 'companyNameError', message: 'Company Name is required' },
+                    { id: 'contactPerson', errorId: 'contactPersonError', message: 'Contact Person number is required' },
+                    { id: 'orderDate', errorId: 'orderDateError', message: 'Order Date is required' },
+                    { id: 'shippingAddress', errorId: 'shippingAddressError', message: 'Shipping Address is required' }
+                ];
+
+                fields.forEach(field => {
+                    const input = document.getElementById(field.id);
+                    const error = document.getElementById(field.errorId);
+                    if (!input.value.trim()) {
+                        error.textContent = field.message;
+                        error.style.display = 'block';
+                        isValid = false;
+                    } else {
+                        error.style.display = 'none';
+                    }
+                });
+
+                const contactValue = contactPersonInput.value.trim();
+                const contactError = document.getElementById('contactPersonError');
+                if (contactValue && /[^0-9]/.test(contactValue)) {
+                    contactError.textContent = "Contact Person must contain numbers only.";
+                    contactError.style.display = 'block';
+                    isValid = false;
+                }
+
+                const rows = document.querySelectorAll('#orderTableBody tr');
+                const orderTableError = document.getElementById('orderTableError');
+                let validItems = false;
+                
+                rows.forEach(row => {
+                    const product = row.querySelector('.product-name').value;
+                    const quantity = parseInt(row.querySelector('.quantity').value) || 0;
+                    const discount = parseFloat(row.querySelector('.discount').value) || 28;
+                    if (product && quantity > 0 && discount >= 28 && discount <= 80) {
+                        validItems = true;
+                        row.classList.remove('row-error');
+                    } else {
+                        row.classList.add('row-error');
+                    }
+                });
+
+                if (!validItems) {
+                    orderTableError.style.display = 'block';
+                    isValid = false;
+                } else {
+                    orderTableError.style.display = 'none';
+                    rows.forEach(row => row.classList.remove('row-error'));
+                }
+
+                if (isValid) {
+                    const compName = document.getElementById('companyName').value;
+                    const contPerson = document.getElementById('contactPerson').value;
+                    const shipAddress = document.getElementById('shippingAddress').value;
+
+                    userProfiles[currentLoggedInUser] = {
+                        ...userProfiles[currentLoggedInUser],
+                        companyName: compName,
+                        contactPerson: contPerson,
+                        shippingAddress: shipAddress
+                    };
+
+                    const orderNum = `ORD-${Date.now()}`;
+                    const orderData = {
+                        customerId: document.getElementById('customerId').value,
+                        companyName: compName,
+                        contactPerson: contPerson,
+                        orderDate: new Date(document.getElementById('orderDate').value).toISOString(),
+                        shippingAddress: shipAddress,
+                        items: Array.from(rows).map(row => ({
+                            productName: row.querySelector('.product-name').value,
+                            rate: parseFloat(row.querySelector('.rate').textContent) || 0,
+                            discount: parseFloat(row.querySelector('.discount').value) || 28,
+                            quantity: parseInt(row.querySelector('.quantity').value) || 0
+                        })).filter(item => item.productName && item.quantity > 0),
+                        notes: document.getElementById('notes').value,
+                        orderNumber: orderNum,
+                        completed: false
+                    };
+
+                    if (isFirebaseConfigured) {
+                        const updates = {};
+                        updates['/submittedOrders/' + orderNum] = orderData;
+                        updates['/userProfiles/' + currentLoggedInUser] = userProfiles[currentLoggedInUser];
+
+                        db.ref().update(updates)
+                        .then(() => {
+                            document.getElementById('successOrderNumber').textContent = orderData.orderNumber;
+                            document.querySelectorAll('.form-section').forEach(el => el.style.display = 'none');
+                            document.getElementById('successPage').style.display = 'block';
+                            document.getElementById('backToForm').style.display = 'block';
+                            alert(`Order submitted successfully to cloud storage!`);
+                        })
+                        .catch(err => alert("Cloud submission failed: " + err.message));
+                    } else {
+                        submittedOrders.push(orderData);
+                        localStorage.setItem('submittedOrders', JSON.stringify(submittedOrders));
+                        localStorage.setItem('userProfiles', JSON.stringify(userProfiles));
+                        
+                        document.getElementById('successOrderNumber').textContent = orderData.orderNumber;
+                        document.querySelectorAll('.form-section').forEach(el => el.style.display = 'none');
+                        document.getElementById('successPage').style.display = 'block';
+                        document.getElementById('backToForm').style.display = 'block';
+                        alert(`Order ${orderData.orderNumber} saved locally!`);
+                    }
+                }
+            });
+
+            document.getElementById('backToForm').addEventListener('click', () => {
+                document.getElementById('successPage').style.display = 'none';
+                document.querySelectorAll('.form-section').forEach(el => el.style.display = 'block');
+
+                document.getElementById('orderDate').value = new Date().toISOString().slice(0, 16);
+                document.getElementById('notes').value = '';
+                
+                document.getElementById('customerId').value = userProfiles[currentLoggedInUser]?.savedId || generateSystemCustomerId();
+                document.getElementById('companyName').value = currentLoggedInUser;
+
+                if (userProfiles[currentLoggedInUser]) {
+                    const profile = userProfiles[currentLoggedInUser];
+                    document.getElementById('contactPerson').value = profile.contactPerson || '';
+                    document.getElementById('shippingAddress').value = profile.shippingAddress || '';
+                }
+                
+                const tbody = document.getElementById('orderTableBody');
+                tbody.innerHTML = `
+                    <tr class="border-b">
+                        <td class="p-2">
+                            <select class="product-name p-2 w-full border rounded-lg">
+                                <option value="">Select a product</option>
+                                <!-- TVS PARTS -->
+                                <option value="TVS Apache Headlight Assembly (HL-TVS01)" data-rate="1450">TVS Apache Headlight Assembly (HL-TVS01)</option>
+                                <option value="TVS Star City Handlebar Switch LH (SW-TVS02)" data-rate="596">TVS Star City Handlebar Switch LH (SW-TVS02)</option>
+                                <option value="TVS Jupiter Side Mirror Set (MR-TVS03)" data-rate="320">TVS Jupiter Side Mirror Set (MR-TVS03)</option>
+                                <option value="TVS XL100 Brake Lever Set (LV-TVS04)" data-rate="180">TVS XL100 Brake Lever Set (LV-TVS04)</option>
+                                <option value="TVS Ntorq Handlebar Yoke Holder (YK-TVS05)" data-rate="740">TVS Ntorq Handlebar Yoke Holder (YK-TVS05)</option>
+                                <!-- BAJAJ PARTS -->
+                                <option value="Bajaj Pulsar 150 Headlight Unit (HL-BAJ01)" data-rate="1680">Bajaj Pulsar 150 Headlight Unit (HL-BAJ01)</option>
+                                <option value="Bajaj Pulsar Handlebar Switch LH Control (SW-BAJ02)" data-rate="593">Bajaj Pulsar Handlebar Switch LH Control (SW-BAJ02)</option>
+                                <option value="Bajaj Platina Clear Rear View Mirrors (MR-BAJ03)" data-rate="290">Bajaj Platina Clear Rear View Mirrors (MR-BAJ03)</option>
+                                <option value="Bajaj Discover Clutch & Brake Lever (LV-BAJ04)" data-rate="240">Bajaj Discover Clutch & Brake Lever (LV-BAJ04)</option>
+                                <option value="Bajaj Avenger Steering Stem Yoke (YK-BAJ05)" data-rate="1150">Bajaj Avenger Steering Stem Yoke (YK-BAJ05)</option>
+                                <!-- YAMAHA PARTS -->
+                                <option value="Yamaha FZ Halogen Headlight Cluster (HL-YAM01)" data-rate="1950">Yamaha FZ Halogen Headlight Cluster (HL-YAM01)</option>
+                                <option value="Yamaha R15 Dipper/Horn Handlebar Switch (SW-YAM02)" data-rate="850">Yamaha R15 Dipper/Horn Handlebar Switch (SW-YAM02)</option>
+                                <option value="Yamaha Fascino Styling Chrome Mirrors (MR-YAM03)" data-rate="450">Yamaha Fascino Styling Chrome Mirrors (MR-YAM03)</option>
+                                <option value="Yamaha MT-15 Sport Lever Set (LV-YAM04)" data-rate="620">Yamaha MT-15 Sport Lever Set (LV-YAM04)</option>
+                                <option value="Yamaha Ray-ZR Front Fork Upper Yoke (YK-YAM05)" data-rate="980">Yamaha Ray-ZR Front Fork Upper Yoke (YK-YAM05)</option>
+                                <!-- HONDA PARTS -->
+                                <option value="Honda Activa LED Headlight Assembly (HL-HON01)" data-rate="2100">Honda Activa LED Headlight Assembly (HL-HON01)</option>
+                                <option value="Honda Shine Handlebar Switch Rh/Lh Combo (SW-HON02)" data-rate="720">Honda Shine Handlebar Switch Rh/Lh Combo (SW-HON02)</option>
+                                <option value="Honda Dio Matte Black Side Mirror Pair (MR-HON03)" data-rate="340">Honda Dio Matte Black Side Mirror Pair (MR-HON03)</option>
+                                <option value="Honda Unicorn Front Disc Brake Lever (LV-HON04)" data-rate="210">Honda Unicorn Front Disc Brake Lever (LV-HON04)</option>
+                                <option value="Honda Hornet Handlebar Weight Yoke (YK-HON05)" data-rate="490">Honda Hornet Handlebar Weight Yoke (YK-HON05)</option>
+                                <!-- HERO HONDA PARTS -->
+                                <option value="Hero Splendor Retro Headlight Unit (HL-HH01)" data-rate="650">Hero Splendor Retro Headlight Unit (HL-HH01)</option>
+                                <option value="Hero Honda Passion Handlebar Dipper Switch (SW-HH02)" data-rate="380">Hero Honda Passion Handlebar Dipper Switch (SW-HH02)</option>
+                                <option value="Hero Glamour Rear View Side Mirror (MR-HH03)" data-rate="260">Hero Glamour Rear View Side Mirror (MR-HH03)</option>
+                                <option value="Hero CD100 Control Lever Pair (LV-HH04)" data-rate="150">Hero CD100 Control Lever Pair (LV-HH04)</option>
+                                <option value="Hero Honda Super Splendor Handle Yoke (YK-HH05)" data-rate="550">Hero Honda Super Splendor Handle Yoke (YK-HH05)</option>
+                                <!-- SUZUKI PARTS -->
+                                <option value="Suzuki Access 125 Headlamp Assembly (HL-SUZ01)" data-rate="1380">Suzuki Access 125 Headlamp Assembly (HL-SUZ01)</option>
+                                <option value="Suzuki Gixxer Dual Toggle Dimmer Switch (SW-SUZ02)" data-rate="690">Suzuki Gixxer Dual Toggle Dimmer Switch (SW-SUZ02)</option>
+                                <option value="Suzuki Burgman Wide Angle Side Mirrors (MR-SUZ03)" data-rate="520">Suzuki Burgman Wide Angle Side Mirrors (MR-SUZ03)</option>
+                                <option value="Suzuki Hayate Pivot Break Lever (LV-SUZ04)" data-rate="190">Suzuki Hayate Pivot Break Lever (LV-SUZ04)</option>
+                                <option value="Suzuki Intruder Core Steering Yoke Bracket (YK-SUZ05)" data-rate="1450">Suzuki Intruder Core Steering Yoke Bracket (YK-SUZ05)</option>
+                            </select>
+                        </td>
+                        <td class="p-2 text-gray-700 font-medium px-4"><span class="rate"></span></td>
+                        <td class="p-2"><input type="number" class="discount p-1.5 w-full border rounded-lg" min="28" max="80" value="28"></td>
+                        <td class="p-2"><input type="number" class="quantity p-1.5 w-full border rounded-lg" min="1"></td>
+                        <td class="p-2 text-gray-900 font-bold px-4"><span class="subtotal"></span></td>
+                        <td class="p-2 text-center"><button class="remove-row text-red-500 hover:text-red-700 transition font-medium">Remove</button></td>
+                    </tr>
+                `;
+                attachRowListeners(tbody.querySelector('tr'));
+                updateDiscounts();
+            });
+
+            updateDiscounts();
+        });
+    </script>
+</body>
+</html>
